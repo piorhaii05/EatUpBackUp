@@ -284,9 +284,9 @@ export default function AdminDashboardScreen({ route }) {
 const getStatusColor = (status) => {
     switch (status) {
         case 'Delivered': return '#4CAF50';
-        case 'Rated': return '#2196F3';
+        case 'Rated': return '#c406d1ff';
         case 'Pending': return '#FFB300';
-        case 'Processing': return '#FFC107';
+        case 'Processing': return '#0b39f4ff';
         case 'Cancelled': return '#F44336';
         default: return '#666';
     }
