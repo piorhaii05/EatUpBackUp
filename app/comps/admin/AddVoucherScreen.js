@@ -38,6 +38,75 @@ const AddVoucherScreen = ({ navigation }) => {
             return;
         }
 
+        const numDiscountValue = Number(discountValue);
+        const numMinOrderAmount = Number(minOrderAmount);
+        const numMaxDiscountAmount = Number(maxDiscountAmount);
+        const numUsageLimit = Number(usageLimit);
+
+        if (discountType === 'percentage') {
+            if (isNaN(numDiscountValue) || numDiscountValue <= 0 || numDiscountValue > 100) {
+                Toast.show({
+                    type: 'error',
+                    text1: 'Giá trị giảm giá không hợp lệ!',
+                    text2: 'Với loại phần trăm, giá trị phải từ 1 đến 100.'
+                });
+                return;
+            }
+        } else if (discountType === 'fixed') {
+            if (isNaN(numDiscountValue) || numDiscountValue <= 0) {
+                Toast.show({
+                    type: 'error',
+                    text1: 'Giá trị giảm giá không hợp lệ!',
+                    text2: 'Với loại cố định, giá trị phải là số dương.'
+                });
+                return;
+            }
+        }
+        if (minOrderAmount && (isNaN(numMinOrderAmount) || numMinOrderAmount < 0)) {
+            Toast.show({
+                type: 'error',
+                text1: 'Giá trị đơn hàng tối thiểu không hợp lệ!',
+                text2: 'Vui lòng nhập một số dương.'
+            });
+            return;
+        }
+        if (maxDiscountAmount && (isNaN(numMaxDiscountAmount) || numMaxDiscountAmount < 0)) {
+            Toast.show({
+                type: 'error',
+                text1: 'Giá trị giảm tối đa không hợp lệ!',
+                text2: 'Vui lòng nhập một số dương.'
+            });
+            return;
+        }
+
+        if (discountType === 'percentage' && maxDiscountAmount && numMaxDiscountAmount < (numMinOrderAmount * numDiscountValue / 100)) {
+            Toast.show({
+                type: 'error',
+                text1: 'Giá trị giảm tối đa quá thấp!',
+                text2: 'Giảm tối đa phải lớn hơn hoặc bằng giá trị giảm thực tế ở đơn hàng tối thiểu.'
+            });
+            return;
+        }
+
+        // Kiểm tra logic: minOrderAmount phải lớn hơn giá trị giảm giá (đối với fixed)
+        if (discountType === 'fixed' && minOrderAmount && numMinOrderAmount < numDiscountValue) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi giá trị!',
+                text2: 'Đơn hàng tối thiểu không thể nhỏ hơn giá trị giảm giá.'
+            });
+            return;
+        }
+
+        // Validate số lượt sử dụng
+        if (usageLimit && (isNaN(numUsageLimit) || numUsageLimit < 1)) {
+            Toast.show({
+                type: 'error',
+                text1: 'Số lượt sử dụng không hợp lệ!',
+                text2: 'Vui lòng nhập một số nguyên dương.'
+            });
+            return;
+        }
         if (discountType !== 'percentage' && discountType !== 'fixed') {
             Toast.show({
                 type: 'error',
@@ -50,6 +119,15 @@ const AddVoucherScreen = ({ navigation }) => {
         // --- Thêm kiểm tra ngày ở đây ---
         const start = new Date(startDate);
         const end = new Date(endDate);
+
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi định dạng ngày!',
+                text2: 'Vui lòng nhập ngày theo định dạng YYYY-MM-DD.'
+            });
+            return;
+        }
 
         if (end < start) {
             Toast.show({
@@ -105,7 +183,7 @@ const AddVoucherScreen = ({ navigation }) => {
                 Toast.show({
                     type: 'error',
                     text1: 'Thêm voucher thất bại!',
-                    text2: data.message || 'Đã xảy ra lỗi khi thêm voucher.'
+                    text2: 'Thông tin voucher không hợp lệ.'
                 });
             }
         } catch (error) {

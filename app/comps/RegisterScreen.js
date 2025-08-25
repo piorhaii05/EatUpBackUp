@@ -147,14 +147,14 @@ export default function RegisterScreen({ navigation }) {
                     <View style={styles.radioOuter}>
                         {role === 'Admin' && <View style={styles.radioInner} />}
                     </View>
-                    <Text style={styles.roleText}>Admin</Text>
+                    <Text style={styles.roleText}>Nhà hàng</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.radioGroup} onPress={() => setRole('User')}>
                     <View style={styles.radioOuter}>
                         {role === 'User' && <View style={styles.radioInner} />}
                     </View>
-                    <Text style={styles.roleText}>User</Text>
+                    <Text style={styles.roleText}>Khách hàng</Text>
                 </TouchableOpacity>
             </View>
 

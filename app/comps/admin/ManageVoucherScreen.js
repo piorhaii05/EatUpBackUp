@@ -54,7 +54,6 @@ const ManageVoucherScreen = () => {
         const endDateA = new Date(a.end_date);
         const endDateB = new Date(b.end_date);
 
-
         const isExpiredA = endDateA < now;
         const isExpiredB = endDateB < now;
 
@@ -98,13 +97,66 @@ const ManageVoucherScreen = () => {
 
   const handleEditSave = async () => {
     if (!editVoucher) return;
+
     if (!editCode || !editDescription || !editDiscountType || !editDiscountValue || !editStartDate || !editEndDate) {
       Alert.alert(
-        'Thiếu thông tin!', 
+        'Thiếu thông tin!',
         'Vui lòng điền đầy đủ các trường bắt buộc.'
       );
       return;
     }
+
+    const numEditDiscountValue = Number(editDiscountValue);
+    const numEditMinOrderAmount = Number(editMinOrderAmount);
+    const numEditMaxDiscountAmount = Number(editMaxDiscountAmount);
+    const numEditUsageLimit = Number(editUsageLimit);
+
+    // Validate giá trị giảm giá dựa trên loại
+    if (editDiscountType === 'percentage') {
+        if (isNaN(numEditDiscountValue) || numEditDiscountValue <= 0 || numEditDiscountValue > 100) {
+            Alert.alert('Giá trị không hợp lệ!', 'Với loại phần trăm, giá trị phải từ 1 đến 100.');
+            return;
+        }
+    } else if (editDiscountType === 'fixed') {
+        if (isNaN(numEditDiscountValue) || numEditDiscountValue <= 0) {
+            Alert.alert('Giá trị không hợp lệ!', 'Với loại cố định, giá trị phải là số dương.');
+            return;
+        }
+    } else {
+        Alert.alert("Lỗi loại giảm giá", "Loại giảm giá phải là 'percentage' hoặc 'fixed'.");
+        return;
+    }
+
+    // Validate giá trị đơn hàng tối thiểu
+    if (editMinOrderAmount && (isNaN(numEditMinOrderAmount) || numEditMinOrderAmount < 0)) {
+        Alert.alert('Giá trị không hợp lệ!', 'Giá trị đơn hàng tối thiểu phải là số dương.');
+        return;
+    }
+
+    // Validate giá trị giảm tối đa
+    if (editMaxDiscountAmount && (isNaN(numEditMaxDiscountAmount) || numEditMaxDiscountAmount < 0)) {
+        Alert.alert('Giá trị không hợp lệ!', 'Giá trị giảm tối đa phải là số dương.');
+        return;
+    }
+
+    // Kiểm tra logic: maxDiscountAmount phải nhỏ hơn hoặc bằng giá trị giảm giá
+    if (editDiscountType === 'percentage' && editMaxDiscountAmount && numEditMaxDiscountAmount < (numEditMinOrderAmount * numEditDiscountValue / 100)) {
+        Alert.alert('Lỗi giá trị!', 'Giảm tối đa phải lớn hơn hoặc bằng giá trị giảm thực tế ở đơn hàng tối thiểu.');
+        return;
+    }
+    
+    // Kiểm tra logic: minOrderAmount phải lớn hơn giá trị giảm giá (đối với fixed)
+    if (editDiscountType === 'fixed' && editMinOrderAmount && numEditMinOrderAmount < numEditDiscountValue) {
+        Alert.alert('Lỗi giá trị!', 'Đơn hàng tối thiểu không thể nhỏ hơn giá trị giảm giá.');
+        return;
+    }
+
+    // Validate số lượt sử dụng
+    if (editUsageLimit && (isNaN(numEditUsageLimit) || numEditUsageLimit < 1)) {
+        Alert.alert('Số lượt sử dụng không hợp lệ!', 'Vui lòng nhập một số nguyên dương.');
+        return;
+    }
+
     if (editDiscountType !== 'percentage' && editDiscountType !== 'fixed') {
       Alert.alert(
         'Lỗi loại giảm giá',
@@ -116,6 +168,12 @@ const ManageVoucherScreen = () => {
     // --- Thêm đoạn kiểm tra ngày tháng ở đây ---
     const start = new Date(editStartDate);
     const end = new Date(editEndDate);
+
+     // Kiểm tra định dạng ngày hợp lệ
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        Alert.alert('Lỗi định dạng ngày!', 'Vui lòng nhập ngày theo định dạng YYYY-MM-DD.');
+        return;
+    }
 
     if (end < start) {
       Alert.alert(
@@ -215,16 +273,29 @@ const ManageVoucherScreen = () => {
     const isExpired = endDate < new Date();
 
     const isUpcoming = startDate > now;
+
+    const isUsageLimitReached = item.usage_limit && item.used_count >= item.usage_limit;
+
     const discountText = item.discount_type === 'percentage'
       ? `Giảm ${item.discount_value}%`
       : `Giảm ${formatPriceVND(item.discount_value)}`;
 
+    const isInactive = isExpired || isUsageLimitReached;
+
     return (
-      <View style={[styles.voucherItem, isExpired && styles.voucherItemExpired, isUpcoming && { borderLeftColor: '#2196F3', opacity: 0.7 }]}>
+      <View style={[styles.voucherItem, isInactive && styles.voucherItemInactive, isExpired && styles.voucherItemExpired, isUpcoming && { borderLeftColor: '#2196F3', opacity: 0.7 }]}>
         <View style={styles.voucherHeader}>
           <Text style={styles.voucherCode}>{item.code}</Text>
-          {isExpired && <Text style={styles.expiredTag}>Đã hết hạn</Text>}
+          {isUpcoming ? (
+            <Text style={styles.upcomingTag}>Chưa bắt đầu</Text>
+          ) : isExpired ? (
+            <Text style={styles.expiredTag}>Đã hết hạn</Text>
+          ) : isUsageLimitReached ? (
+            <Text style={styles.usageLimitTag}>Hết lượt dùng</Text>
+          ) : null}
+          {/* {isExpired && <Text style={styles.expiredTag}>Đã hết hạn</Text>}
           {isUpcoming && <Text style={[styles.expiredTag, { backgroundColor: '#2196F3' }]}>Chưa bắt đầu</Text>}
+          {isUsageLimitReached && !isExpired && <Text style={styles.usageLimitTag}>Hết lượt dùng</Text>} */}
         </View>
         <Text style={styles.descriptionText}>{item.description}</Text>
         <View style={styles.detailsContainer}>
@@ -431,6 +502,10 @@ const styles = StyleSheet.create({
     borderLeftWidth: 6, // Đường viền nổi bật hơn
     borderLeftColor: '#4CAF50', // Màu xanh lá cây cho voucher còn hạn
   },
+  voucherItemInactive: {
+    opacity: 0.7,
+    borderLeftColor: '#9B59B6',
+  },
   voucherItemExpired: {
     opacity: 0.7, // Mờ đi nếu voucher hết hạn
     borderLeftColor: '#FF5722', // Màu cam cho voucher hết hạn
@@ -472,6 +547,15 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontWeight: '600',
     color: '#333',
+  },
+  upcomingTag: {
+    backgroundColor: '#2196F3', // Màu xanh dương
+    color: '#FFFFFF',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   actionRow: {
     flexDirection: 'row',
@@ -554,6 +638,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     marginTop: 20,
     gap: 15,
+  },
+  usageLimitTag: {
+    backgroundColor: '#9B59B6', // Màu tím (hoặc bất kỳ màu nào bạn muốn)
+    color: '#FFFFFF',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   modalSaveButton: {
     flex: 1,
